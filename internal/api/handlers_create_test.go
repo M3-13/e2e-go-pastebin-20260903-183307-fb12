@@ -61,7 +61,7 @@ func TestCreatePasteEmptyContent(t *testing.T) {
 }
 
 func TestCreatePasteNonPositiveExpiry(t *testing.T) {
-	for _, v := range []string{"0", "-1"} {
+	for _, v := range []string{"0", "-1", "null"} {
 		rec := doCreate(`{"content":"x","expires_in_seconds":` + v + `}`)
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("expires_in_seconds=%s: expected 400, got %d", v, rec.Code)

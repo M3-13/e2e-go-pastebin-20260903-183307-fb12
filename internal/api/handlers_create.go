@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -12,9 +13,9 @@ import (
 const maxBodyBytes = 1 << 20
 
 type createRequest struct {
-	Content          string `json:"content"`
-	Language         string `json:"language"`
-	ExpiresInSeconds *int   `json:"expires_in_seconds"`
+	Content          string          `json:"content"`
+	Language         string          `json:"language"`
+	ExpiresInSeconds json.RawMessage `json:"expires_in_seconds"`
 }
 
 // RegisterCreateRoutes wires the paste-creation route.
@@ -38,12 +39,14 @@ func createPasteHandler(s *paste.Store) http.HandlerFunc {
 		}
 
 		var expiresIn time.Duration
-		if req.ExpiresInSeconds != nil {
-			if *req.ExpiresInSeconds <= 0 {
+		if len(req.ExpiresInSeconds) > 0 {
+			raw := bytes.TrimSpace(req.ExpiresInSeconds)
+			var secs int
+			if bytes.Equal(raw, []byte("null")) || json.Unmarshal(raw, &secs) != nil || secs <= 0 {
 				WriteError(w, http.StatusBadRequest, "expires_in_seconds must be positive")
 				return
 			}
-			expiresIn = time.Duration(*req.ExpiresInSeconds) * time.Second
+			expiresIn = time.Duration(secs) * time.Second
 		}
 
 		p, err := s.Create(req.Content, req.Language, expiresIn)
